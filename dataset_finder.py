@@ -353,11 +353,11 @@ def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
     For simplicity this could simply encapsulate every subdirectory. If this is the case it is still
     important to keep the file format itself separate as only directories are checked in this function.
     Input:
-    format_dirs: The format of the directories leading to the datasets
-    format_file: The format of the files within the datasets, which can include subdirectories
-    exact_match: Whether to match search terms exactly, default to False. Otherwise a substring 
+    - format_dirs: The format of the directories leading to the datasets
+    - format_file: The format of the files within the datasets, which can include subdirectories
+    - exact_match: Whether to match search terms exactly, default to False. Otherwise a substring 
     is considered a match
-    **kwargs: Keyword arguments mapping search terms to values for matching. Multiple values can
+    - **kwargs: Keyword arguments mapping search terms to values for matching. Multiple values can
     be assigned to each search term - only one needs to match for it to be included.
     Output:
     A dataset_info_collection object containing a list of dataset_info objects corresponding to
@@ -514,7 +514,17 @@ def paths(key, yaml_path = "paths.yml"):
 def get_datasets(key, yaml_path = "paths.yml", exact_match = False, **kwargs):
     """
     Use a yaml file to get path formats, then immediately search and return dataset matches.
-    Identical to "paths" above except removes an intermediate step.
+    Identical to "paths" above except removes an intermediate step. See filter_all for more.
+    Inputs:
+    - key: The name of the paths being referenced within the yaml file
+    - yaml_path: The path of the yaml file (default "paths.yml" in working directory)
+    - exact_match: Whether to match search terms exactly, default to False. Otherwise a substring 
+    is considered a match
+    - **kwargs: Keyword arguments mapping search terms to values for matching. Multiple values can
+    be assigned to each search term - only one needs to match for it to be included.
+    Output:
+    A dataset_info_collection object containing a list of dataset_info objects corresponding to
+    successful matches.
     """
     return paths(key, yaml_path)(exact_match, **kwargs)
 
