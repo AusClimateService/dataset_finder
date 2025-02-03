@@ -248,6 +248,7 @@ class dataset_info:
     def print_info(self):
         if self.info:
             print(self.info)
+            return
             
         def print_info_recursive(current_info, depth = 0):
             if not current_info:
