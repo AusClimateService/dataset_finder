@@ -20,11 +20,11 @@ data = all_data[0]
 data.print_info()
 ```
 
-This will print information about the dataset - in this case, which variables and years it contains.
+This will print information about the dataset - in this case, which years it contains.
 
-The dataset_info can then by further filtered down to select specific variables or years:
+The dataset_info can then by further filtered down to select years:
 ```
-data.select(var = ("tasmax", "tasmin"), year = year_range(1980, 1990))
+data.select(year = year_range(1980, 1990))
 ```
 When selecting years, it is required to use year_range as the internal code will be confused by regular Python range (as that returns integers rather than strings which the code uses to match).
 
