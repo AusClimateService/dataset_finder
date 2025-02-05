@@ -304,9 +304,14 @@ class dataset_info:
 
     def includes(self, exact_match = False, **kwargs):
         for key in kwargs:
+            
+            if key not in self.get_info():
+                return False
+                
             values = kwargs[key]
             if isinstance(values, str):
                 values = [values]
+                
             for value in values:
                 if exact_match:
                     if not any(value == term for term in self.get_info()[key]):
@@ -314,6 +319,7 @@ class dataset_info:
                 else:
                     if not any(value in term for term in self.get_info()[key]):
                         return False
+                        
         return True
 
     def __iter__(self):
