@@ -143,7 +143,8 @@ class dataset_info:
         self.data = data
         self.root = root
         self.format_file = format_file
-        self.info = ""
+        self.info = {}
+        self.info_str = ""
         self.selected = {}
         self.exact_match_dict = {}
 
@@ -242,12 +243,24 @@ class dataset_info:
 
         collated_info = {}
         for info, file in self.generate_info():
+            for key in info:
+                if key not in self.info:
+                    self.info[key] = [info[key]]
+                else:
+                    if info[key] not in self.info[key]:
+                        self.info[key].append(info[key])
+                        self.info[key].sort()
             collate_info_recursive(collated_info, info)
         return collated_info
 
+    def get_info(self):
+        if not self.info:
+            self.collate_info()
+        return self.info
+
     def print_info(self):
-        if self.info:
-            print(self.info)
+        if self.info_str:
+            print(self.info_str)
             return
             
         def print_info_recursive(current_info, depth = 0):
@@ -277,9 +290,9 @@ class dataset_info:
             return out_str
         
         collated_info = self.collate_info()
-        self.info = print_info_recursive(collated_info)
-        print(self.info)
-        # return self.info
+        self.info_str = print_info_recursive(collated_info)
+        print(self.info_str)
+        # return self.info_str
     
     def match(self, key, match_terms, exact_match = False):
         if isinstance(match_terms, str):
@@ -288,6 +301,20 @@ class dataset_info:
             return any(term == self.data[key] for term in match_terms)
         else:
             return any(term in self.data[key] for term in match_terms)
+
+    def includes(self, exact_match = False, **kwargs):
+        for key in kwargs:
+            values = kwargs[key]
+            if isinstance(values, str):
+                values = [values]
+            for value in values:
+                if exact_match:
+                    if not any(value == term for term in self.get_info()[key]):
+                        return False
+                else:
+                    if not any(value in term for term in self.get_info()[key]):
+                        return False
+        return True
 
     def __iter__(self):
         return iter(self.get_files())
@@ -298,7 +325,10 @@ class dataset_info:
 
 class dataset_info_collection:
     def __init__(self, items = []):
-        self.items = []
+        if items:
+            self.items = items
+        else:
+            self.items = []
 
     def add(self, item):
         self.items.append(item)
@@ -320,6 +350,9 @@ class dataset_info_collection:
             files = files + item.get_files()
         return files
 
+    def includes(self, exact_match = False, **kwargs):
+        return dataset_info_collection([item for item in self.items if item.includes(exact_match, **kwargs)])
+
     # so that open_mfdataset can be used directly with this object
     def __iter__(self):
         return iter(self.get_files())
@@ -335,7 +368,7 @@ class dataset_info_collection:
 
     # display nicely when interrogating on JupyterLab
     def _repr_html_(self):
-        return tabulate([item.data for item in self.items], headers = "keys", showindex = True, tablefmt = "html")
+        return tabulate([item.data | {key: merge_values(value) for key, value in item.get_info().items()} for item in self.items], headers = "keys", showindex = True, tablefmt = "html")
 
 
 def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
