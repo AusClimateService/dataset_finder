@@ -165,6 +165,7 @@ class dataset_info:
             if key in self.selected:
                 self.selected.pop(key)
                 self.exact_match_dict.pop(key)
+        return self
 
     def keys(self):
         return self.data.keys()
@@ -343,11 +344,13 @@ class dataset_info_collection:
     def select(self, exact_match = False, **kwargs):
         for item in self.items:
             item.select(exact_match, **kwargs)
+        return self
 
     # deselect variables
     def deselect(self, *args):
         for item in self.items:
             item.deselect(*args)
+        return self
 
     # return all the files from all the dataset_info objects in a single 1D list
     def get_files(self):
