@@ -27,6 +27,8 @@ def extract_from_format(format_string, input_string):
         
         # no variables left
         if "{" not in format_string:
+            if format_string != input_string:
+                raise ValueError("Strings are not the same format")
             break
         
         # find argument start point
@@ -340,6 +342,15 @@ class dataset_info_collection:
     def add(self, item):
         self.items.append(item)
 
+    def get_all(self, key):
+        all_list = []
+        for item in self.items:
+            if key in item.data:
+                value = item.data[key]
+                if value not in all_list:
+                    all_list.append(value)
+        return all_list
+
     # select variables within the dataset to include
     def select(self, exact_match = False, **kwargs):
         for item in self.items:
@@ -431,9 +442,9 @@ def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
     
             # match directory names against given filters to stop os.walk from finding unwanted datasets
             else:
-    
                 # if key wasn't provided, nothing will be filtered out
                 match_values(dirs, columns[level], kwargs, exact_match, in_place = True)
+
 
     # find root of string by looking for first variable
     if "{" in format_dirs:
@@ -461,7 +472,13 @@ def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
         
     for root, dirs in filter_walk(start_path, columns, exact_match, **kwargs):
         info = extract_from_format(os.sep.join(columns), root)
+        # if not info:
+        #     info = {"path": format_dirs}
         dataset = dataset_info(info, format_dirs.format(**info), format_file)
+        try:
+            dataset.get_info()
+        except:
+            continue
         all_data.add(dataset)
 
     return all_data
