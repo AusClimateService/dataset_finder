@@ -1,5 +1,6 @@
 import os
 import yaml
+import pandas as pd
 
 from tabulate import tabulate
 
@@ -370,12 +371,16 @@ class dataset_info_collection:
             files = files + item.get_files()
         return files
 
+    def to_dataframe(self):
+        return pd.DataFrame([item.data for item in self.items])
+
     def includes(self, exact_match = False, **kwargs):
         return dataset_info_collection([item for item in self.items if item.includes(exact_match, **kwargs)])
 
     # so that open_mfdataset can be used directly with this object
     def __iter__(self):
-        return iter(self.get_files())
+        return self.items
+        # return iter(self.get_files())
 
     # allows individual dataset_info objects to be extracted directly
     # needs improvement, a slice should return a new dataset_info_collection
