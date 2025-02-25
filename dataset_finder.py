@@ -29,6 +29,7 @@ def extract_from_format(format_string, input_string):
         # no variables left
         if "{" not in format_string:
             if format_string != input_string:
+                # print(format_string, input_string, extracted_values, sep, sep_pos)
                 raise ValueError("Strings are not the same format")
             break
         
@@ -61,6 +62,8 @@ def extract_from_format(format_string, input_string):
             sep_pos = input_string.find(sep)
             var_value = input_string[:sep_pos]
             input_string = input_string[sep_pos:]
+            # if sep_pos == -1:
+            #     print("yikes")
         else:
             var_value = input_string
 
@@ -201,7 +204,7 @@ class dataset_info:
             start_path = self.root + format_file
             format_file = ""
 
-        for root, dirs, files in os.walk(start_path):
+        for root, dirs, files in os.walk(start_path, followlinks = True):
             dirs.sort()
             files.sort()
 
@@ -220,12 +223,21 @@ class dataset_info:
                     match_values(files, format_file, self.selected, in_place = True, exact_match_dict = self.exact_match_dict)                
                 
                 for file in files:
-                    values = {key: value for key, value in extract_from_format(format_file, file).items() if key not in self.data}
+                    try:
+                        values = {key: value for key, value in extract_from_format(format_file, file).items() if key not in self.data}
+                    except:
+                        # print(format_file, file)
+                        continue
                     yield values, file
     
     def collate_info(self):
         def collate_info_recursive(current_dict, info):
-            key = list(info.keys())[0]
+
+            if info.keys():
+                key = list(info.keys())[0]
+            else:
+                return
+                
             value = info.pop(key)
         
             if key in current_dict:
@@ -426,7 +438,7 @@ def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
     # internal helper function, can't be used from outside
     # walk through directory tree to find datasets, filtering by matching names against columns along the way
     def filter_walk(start_path, columns, exact_match = False, **kwargs):
-        for root, dirs, files in os.walk(start_path):
+        for root, dirs, files in os.walk(start_path, followlinks = True):
             dirs.sort()
     
             # how deep we are into the tree (root = 0)
@@ -482,7 +494,9 @@ def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
         dataset = dataset_info(info, format_dirs.format(**info), format_file)
         try:
             dataset.get_info()
-        except:
+        except Exception as e:
+            # print(e, info, root, columns)
+            # raise e
             continue
         all_data.add(dataset)
 
