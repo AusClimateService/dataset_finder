@@ -48,22 +48,33 @@ def extract_from_format(format_string, input_string):
         # find the next character after variable and use it to extract from check string
         arg_end = format_string.find("}")
         var_name = format_string[:arg_end]
-        # sep = format_string[arg_end + 1]
         format_string = format_string[arg_end + 1:]
+
+        # unspecified length
+        var_length = 0
+        
+        # find special formatting options for var
+        if ":" in var_name:
+            split = var_name.split(":")
+            var_name = split[0]
+            var_length = int(split[1])
 
         # check if at end (i.e. nothing more to cut out)
         if format_string:
-            # get the separator (multiple characters to allow for year filtering later)
-            if "{" in format_string:
-                sep_end = format_string.find("{")
-                sep = format_string[:sep_end]
+            if var_length:
+                sep_pos = var_length
+
             else:
-                sep = format_string
-            sep_pos = input_string.find(sep)
+                # get the separator (multiple characters to allow for year filtering later)
+                if "{" in format_string:
+                    sep_end = format_string.find("{")
+                    sep = format_string[:sep_end]
+                else:
+                    sep = format_string
+                sep_pos = input_string.find(sep)
             var_value = input_string[:sep_pos]
             input_string = input_string[sep_pos:]
-            # if sep_pos == -1:
-            #     print("yikes")
+
         else:
             var_value = input_string
 

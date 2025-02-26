@@ -12,16 +12,16 @@ AGCD:
 
 GCM:
     format_dirs: "/g/data/oi10/replicas/CMIP6/CMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
-    format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year}.nc"
+    format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year:4}{*}.nc"
 
 ACCESS_GCM:
     format_dirs: "/g/data/fs38/publications/CMIP6/CMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
-    format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year}1231.nc"
+    format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year:4}{*}.nc"
 
 GCM_Scenario:
     format_dirs: "/g/data/oi10/replicas/CMIP6/ScenarioMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
-    format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year}.nc"
+    format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year:4}{*}.nc"
 
 ACCESS_GCM_Scenario:
     format_dirs: "/g/data/fs38/publications/CMIP6/ScenarioMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
-    format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year}1231.nc"
+    format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year:4}{*}.nc"
