@@ -190,7 +190,7 @@ class dataset_info:
     def values(self):
         return self.data.values()
 
-    def generate_info(self, apply_filter = False, exact_match = False):
+    def generate_info(self, apply_filter = True, exact_match = False):
 
         if self.format_file[0] == os.sep:
             format_file = self.format_file[1:]
@@ -241,7 +241,7 @@ class dataset_info:
                         continue
                     yield values, file
     
-    def collate_info(self):
+    def collate_info(self, apply_filter = True):
         def collate_info_recursive(current_dict, info):
 
             if info.keys():
@@ -269,7 +269,8 @@ class dataset_info:
                     collate_info_recursive(new_dict, info)
 
         collated_info = {}
-        for info, file in self.generate_info():
+        self.info = {}
+        for info, file in self.generate_info(apply_filter):
             for key in info:
                 if key not in self.info:
                     self.info[key] = [info[key]]
@@ -280,9 +281,12 @@ class dataset_info:
             collate_info_recursive(collated_info, info)
         return collated_info
 
-    def get_info(self):
-        if not self.info:
-            self.collate_info()
+    def get_info(self, apply_filter = True):
+        self.collate_info(apply_filter)
+        
+        # if not self.info:
+        #     self.collate_info()
+    
         return self.info
 
     def print_info(self):
@@ -355,6 +359,36 @@ class dataset_info:
     def get_files(self):
         return [(self.root + file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
 
+    def table_data(self):
+        return self.data | {key: merge_values(value) for key, value in self.get_info().items()}
+
+    def to_df_table(self):
+        info = self.get_info().items()
+        tabled_info = {}
+        # untabled_info = []
+        for key, value in info:
+            if len(value) == 1:
+                tabled_info[key] = value[0]
+            # else:
+            #     untabled_info.append(key)
+
+        if "{" in self.format_file:
+            split_format_file = self.format_file.split("{")
+            final_format_file = ""
+            for item in split_format_file:
+                # not empty string or first entry
+                if "}" in item:
+                    # add back in the { that was lost during split
+                    item = "{" + item
+                    try:
+                        formatted_item = (item).format(**(self.data | tabled_info))
+                    except:
+                        formatted_item = item
+                    final_format_file += formatted_item
+                else:
+                    final_format_file += item
+        return (self.data | tabled_info) | {"format_file" : (self.root + final_format_file).replace(2 * os.sep, os.sep)}
+
 
 class dataset_info_collection:
     def __init__(self, items = []):
@@ -395,7 +429,9 @@ class dataset_info_collection:
         return files
 
     def to_dataframe(self):
-        return pd.DataFrame([item.data for item in self.items])
+        # return pd.DataFrame([item.data for item in self.items])
+        # return pd.DataFrame([item.table_data() for item in self.items])
+        return pd.DataFrame([item.to_df_table() for item in self.items])
 
     def includes(self, exact_match = False, **kwargs):
         return dataset_info_collection([item for item in self.items if item.includes(exact_match, **kwargs)])
@@ -416,7 +452,8 @@ class dataset_info_collection:
 
     # display nicely when interrogating on JupyterLab
     def _repr_html_(self):
-        return tabulate([item.data | {key: merge_values(value) for key, value in item.get_info().items()} for item in self.items], headers = "keys", showindex = True, tablefmt = "html")
+        # return tabulate([item.data | {key: merge_values(value) for key, value in item.get_info().items()} for item in self.items], headers = "keys", showindex = True, tablefmt = "html")
+        return tabulate([item.table_data() for item in self.items], headers = "keys", showindex = True, tablefmt = "html")
 
 
 def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
