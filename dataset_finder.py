@@ -626,6 +626,9 @@ def paths(key, yaml_path = "paths.yml"):
     Returns:
     A function calling filter_all with the file path arguments already assigned    
     """
+    if yaml_path[0] != os.sep:
+        yaml_path = os.path.join(os.path.dirname(__file__), yaml_path)
+        
     with open(yaml_path, 'r') as fstream:
         keys = yaml.safe_load(fstream)
 
