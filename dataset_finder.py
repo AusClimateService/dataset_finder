@@ -428,6 +428,54 @@ class dataset_info_collection:
             files = files + item.get_files()
         return files
 
+    def _compare_collections(self, other, match_keys):
+        matched = []
+        unmatched = []
+        for item in self.items:
+            success = False
+            
+            for check in other.items:
+                if match_keys:
+                    common_keys = match_keys
+
+                    # item does not contain all the requisite keys for comparing
+                    if item.keys() & common_keys != common_keys:
+                        break
+
+                    # check does not contain all the requisite keys for comparing
+                    if check.keys() & common_keys != common_keys:
+                        break
+                        
+                else:
+                    # match based on common columns
+                    common_keys = item.keys() & check.keys()
+
+                    # no common column to match between
+                    if not common_keys:
+                        break
+
+                # check for match
+                success = all([item.data[key] == check.data[key] for key in common_keys])
+
+                # successful match, end early
+                if success:
+                    break
+
+            if success:
+                matched.append(item)
+            else:
+                unmatched.append(item)
+
+        return matched, unmatched
+
+    def find_matches(self, other, match_keys = None):
+        matched, unmatched = self._compare_collections(other, match_keys)
+        return dataset_info_collection(matched)
+
+    def find_missing(self, other, match_keys = None):
+        matched, unmatched = self._compare_collections(other, match_keys)
+        return dataset_info_collection(unmatched)
+
     def to_dataframe(self):
         # return pd.DataFrame([item.data for item in self.items])
         # return pd.DataFrame([item.table_data() for item in self.items])
