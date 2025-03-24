@@ -439,11 +439,11 @@ class dataset_info_collection:
                     common_keys = match_keys
 
                     # item does not contain all the requisite keys for comparing
-                    if item.keys() & common_keys != common_keys:
+                    if any([key not in item.keys() for key in common_keys]):
                         break
 
                     # check does not contain all the requisite keys for comparing
-                    if check.keys() & common_keys != common_keys:
+                    if any([key not in check.keys() for key in common_keys]):
                         break
                         
                 else:
