@@ -158,7 +158,8 @@ def match_values(arr, format_string, search_terms, exact_match = False, in_place
 class dataset_info:
     def __init__(self, data, root, format_file):
         self.data = data
-        self.root = root
+        # self.root = root
+        self.roots = [root]
         self.format_file = format_file
         self.info = {}
         self.info_str = ""
@@ -190,56 +191,71 @@ class dataset_info:
     def values(self):
         return self.data.values()
 
+    def attempt_merge(self, other):
+        # Check whether their data is identical (both keys and values match)
+        # If they all match perfectly, this set should be empty (^ is XOR operator)
+        if self.data.items() ^ other.data.items():
+            return False
+
+        else:
+            # Combine the two by adding the other's root paths to this one
+            new_roots = [root for root in other.roots if root not in self.roots]
+            if new_roots:
+                self.roots.append(*new_roots)
+            return True
+        
+
     def generate_info(self, apply_filter = True, exact_match = False):
 
         if self.format_file[0] == os.sep:
             format_file = self.format_file[1:]
         else:
             format_file = self.format_file
-        
-        if "{" in format_file:
-            
-            first_arg_pos = format_file.find("{")
-    
-            # cut off by folder in case the variable wasn't immediately after /
-            slash_pos = format_file[first_arg_pos::-1].find(os.sep)
-            if slash_pos == -1:
-                prev_separator_pos = -1
-            else:
-                prev_separator_pos = first_arg_pos - slash_pos
-    
-            start_path = self.root + format_file[:prev_separator_pos + 1]
-            format_file = format_file[prev_separator_pos + 1:]
 
-        else:
-            start_path = self.root + format_file
-            format_file = ""
-
-        for root, dirs, files in os.walk(start_path, followlinks = True):
-            dirs.sort()
-            files.sort()
-
-            # how deep we are into the tree (root = 0)
-            level = 0
-
-            short_root = root.replace(start_path, '')
-            if root != start_path:
-                level = short_root.count(os.sep) + 1
-
-            if level == format_file.count(os.sep):
-                for i, file in enumerate(files):
-                    files[i] = short_root + os.sep + file
-
-                if apply_filter and self.selected:
-                    match_values(files, format_file, self.selected, in_place = True, exact_match_dict = self.exact_match_dict)                
+        for path_root in self.roots:
+            if "{" in format_file:
                 
-                for file in files:
-                    try:
-                        values = {key: value for key, value in extract_from_format(format_file, file).items() if key not in self.data}
-                    except:
-                        # print(format_file, file)
-                        continue
-                    yield values, file
+                first_arg_pos = format_file.find("{")
+        
+                # cut off by folder in case the variable wasn't immediately after /
+                slash_pos = format_file[first_arg_pos::-1].find(os.sep)
+                if slash_pos == -1:
+                    prev_separator_pos = -1
+                else:
+                    prev_separator_pos = first_arg_pos - slash_pos
+        
+                start_path = path_root + format_file[:prev_separator_pos + 1]
+                format_file = format_file[prev_separator_pos + 1:]
+    
+            else:
+                start_path = path_root + format_file
+                format_file = ""
+    
+            for root, dirs, files in os.walk(start_path, followlinks = True):
+                dirs.sort()
+                files.sort()
+    
+                # how deep we are into the tree (root = 0)
+                level = 0
+    
+                short_root = root.replace(start_path, '')
+                if root != start_path:
+                    level = short_root.count(os.sep) + 1
+    
+                if level == format_file.count(os.sep):
+                    for i, file in enumerate(files):
+                        files[i] = short_root + os.sep + file
+    
+                    if apply_filter and self.selected:
+                        match_values(files, format_file, self.selected, in_place = True, exact_match_dict = self.exact_match_dict)                
+                    
+                    for file in files:
+                        try:
+                            values = {key: value for key, value in extract_from_format(format_file, file).items() if key not in self.data}
+                        except:
+                            # print(format_file, file)
+                            continue
+                        yield values, path_root + file
     
     def collate_info(self, apply_filter = True):
         def collate_info_recursive(current_dict, info):
@@ -357,7 +373,8 @@ class dataset_info:
         return iter(self.get_files())
 
     def get_files(self):
-        return [(self.root + file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
+        # return [(self.root + file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
+        return [(file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
 
     def table_data(self):
         return self.data | {key: merge_values(value) for key, value in self.get_info().items()}
@@ -387,7 +404,7 @@ class dataset_info:
                     final_format_file += formatted_item
                 else:
                     final_format_file += item
-        return (self.data | tabled_info) | {"format_file" : (self.root + final_format_file).replace(2 * os.sep, os.sep)}
+        return (self.data | tabled_info) | {"format_file" : (self.roots[0] + final_format_file).replace(2 * os.sep, os.sep)}
 
 
 class dataset_info_collection:
@@ -484,9 +501,9 @@ class dataset_info_collection:
     def includes(self, exact_match = False, **kwargs):
         return dataset_info_collection([item for item in self.items if item.includes(exact_match, **kwargs)])
 
-    # so that open_mfdataset can be used directly with this object
+    # ~~so that open_mfdataset can be used directly with this object~~
     def __iter__(self):
-        return self.items
+        return iter(self.items)
         # return iter(self.get_files())
 
     # allows individual dataset_info objects to be extracted directly
@@ -504,7 +521,7 @@ class dataset_info_collection:
         return tabulate([item.table_data() for item in self.items], headers = "keys", showindex = True, tablefmt = "html")
 
 
-def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
+def filter_all(format_dirs_list, format_file, exact_match = False, **kwargs):
     """
     Search through a directory and its subdirectories, filtering out results that do not match
     according to the given format strings and supplied variables, returning a list of applicable datasets.
@@ -530,6 +547,9 @@ def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
     A dataset_info_collection object containing a list of dataset_info objects corresponding to
     successful matches.
     """
+
+    if isinstance(format_dirs_list, str):
+        format_dirs_list = [format_dirs_list]
 
     # internal helper function, can't be used from outside
     # walk through directory tree to find datasets, filtering by matching names against columns along the way
@@ -557,44 +577,51 @@ def filter_all(format_dirs, format_file, exact_match = False, **kwargs):
             else:
                 # if key wasn't provided, nothing will be filtered out
                 match_values(dirs, columns[level], kwargs, exact_match, in_place = True)
-
-
-    # find root of string by looking for first variable
-    if "{" in format_dirs:
-        first_arg_pos = format_dirs.find("{")
-
-        # cut off by folder in case the variable wasn't immediately after /
-        slash_pos = format_dirs[first_arg_pos::-1].find(os.sep)
-        if slash_pos == -1:
-            prev_separator_pos = -1
-        else:
-            prev_separator_pos = first_arg_pos - slash_pos
-
-        start_path = format_dirs[:prev_separator_pos + 1]
-        columns = format_dirs[prev_separator_pos + 1:].split(os.sep)
-
-        # remove empty final column which shows up from the split if path string ended in /
-        if not columns[-1]:
-            columns.pop()
-
-    else:
-        start_path = format_dirs
-        columns = []
-    
+                
     all_data = dataset_info_collection()
+
+    for format_dirs in format_dirs_list:
+
+        # find root of string by looking for first variable
+        if "{" in format_dirs:
+            first_arg_pos = format_dirs.find("{")
+    
+            # cut off by folder in case the variable wasn't immediately after /
+            slash_pos = format_dirs[first_arg_pos::-1].find(os.sep)
+            if slash_pos == -1:
+                prev_separator_pos = -1
+            else:
+                prev_separator_pos = first_arg_pos - slash_pos
+    
+            start_path = format_dirs[:prev_separator_pos + 1]
+            columns = format_dirs[prev_separator_pos + 1:].split(os.sep)
+    
+            # remove empty final column which shows up from the split if path string ended in /
+            if not columns[-1]:
+                columns.pop()
+    
+        else:
+            start_path = format_dirs
+            columns = []
         
-    for root, dirs in filter_walk(start_path, columns, exact_match, **kwargs):
-        info = extract_from_format(os.sep.join(columns), root)
-        # if not info:
-        #     info = {"path": format_dirs}
-        dataset = dataset_info(info, format_dirs.format(**info), format_file)
-        try:
-            dataset.get_info()
-        except Exception as e:
-            # print(e, info, root, columns)
-            # raise e
-            continue
-        all_data.add(dataset)
+            
+        for root, dirs in filter_walk(start_path, columns, exact_match, **kwargs):
+            info = extract_from_format(os.sep.join(columns), root)
+            # if not info:
+            #     info = {"path": format_dirs}
+            dataset = dataset_info(info, format_dirs.format(**info), format_file)
+            try:
+                dataset.get_info()
+            except Exception as e:
+                print(e, info, root, columns)
+                # raise e
+                continue
+
+            for item in all_data.items:
+                if item.attempt_merge(dataset):
+                    break
+            else:
+                all_data.add(dataset)
 
     return all_data
 
