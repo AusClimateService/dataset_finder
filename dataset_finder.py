@@ -81,6 +81,15 @@ def extract_from_format(format_string, input_string):
         # match all - don't raise an error, but also don't keep result
         if var_name != "*":
             extracted_values[var_name] = var_value
+            # if var_name not in extracted_values:
+            #     extracted_values[var_name] = var_value
+            # else:
+            #     if isinstance(extracted_values[var_name], str):
+            #         if var_value != extracted_values[var_name]:
+            #             extracted_values[var_name] = [extracted_values[var_name], var_value]
+            #     else:
+            #         if var_value not in extracted_values[var_name]:
+            #             extracted_values[var_name].append(var_value)
     
     return extracted_values
 
@@ -121,17 +130,35 @@ def match_values(arr, format_string, search_terms, exact_match = False, in_place
     
             for key in extracted_values:
                 
+                check_value = extracted_values[key]
+                range_check = False
+
+                if "!" in key:
+                    split = key.split("!")
+                    key = split[0]
+
+                    # todo: make more safe (check if start was there)
+                    if split[1] == "end":
+                        continue
+
+                    elif split[1] == "start":
+                        range_check = True
+                        check_value = year_range(check_value, extracted_values[f'{key}!end'])
+                
                 # check if it's being searched by - if not, match by default
                 if key in search_terms:
                     remove = True
-                    check_value = extracted_values[key]
                     for value in search_terms[key]:
-                        if exact_match_dict[key] if key in exact_match_dict else exact_match:
-                            if value.casefold() == check_value.casefold():
+                        if range_check:
+                            if value in check_value:
                                 remove = False
                         else:
-                            if value.casefold() in check_value.casefold():
-                                remove = False
+                            if exact_match_dict[key] if key in exact_match_dict else exact_match:
+                                if value.casefold() == check_value.casefold():
+                                    remove = False
+                            else:
+                                if value.casefold() in check_value.casefold():
+                                    remove = False
                     if remove:
                         to_remove.append(item)
                         
@@ -265,35 +292,61 @@ class dataset_info:
             else:
                 return
                 
-            value = info.pop(key)
+            values = info.pop(key)
+
+            if isinstance(values, str):
+                values = [values]
+
+            for value in values:
         
-            if key in current_dict:
-                if not info:
-                    current_dict[key][value] = {}
-                else:
-                    if value not in current_dict[key]:
+                if key in current_dict:
+                    if not info:
+                        current_dict[key][value] = {}
+                    else:
+                        if value not in current_dict[key]:
+                            new_dict = {}
+                            current_dict[key][value] = new_dict
+                        collate_info_recursive(current_dict[key][value], info)
+            
+                if key not in current_dict:
+                    if not info:
+                        current_dict[key] = {value: {}}
+                    else:
                         new_dict = {}
-                        current_dict[key][value] = new_dict
-                    collate_info_recursive(current_dict[key][value], info)
-        
-            if key not in current_dict:
-                if not info:
-                    current_dict[key] = {value: {}}
-                else:
-                    new_dict = {}
-                    current_dict[key] = {value: new_dict}
-                    collate_info_recursive(new_dict, info)
+                        current_dict[key] = {value: new_dict}
+                        collate_info_recursive(new_dict, info)
 
         collated_info = {}
         self.info = {}
         for info, file in self.generate_info(apply_filter):
-            for key in info:
+            to_pop = []
+            for key in list(info.keys()):
+                new_value = [info[key]]
+
+                if "!" in key:
+                    to_pop.append(key)
+                    split = key.split("!")
+                    key = split[0]
+
+                    # todo: make more safe (check if start was there)
+                    if split[1] == "end":
+                        continue
+
+                    elif split[1] == "start":
+                        range_check = True
+                        new_value = year_range(new_value[0], info[f'{key}!end'])
+                        info[key] = new_value
+                        
                 if key not in self.info:
-                    self.info[key] = [info[key]]
+                    self.info[key] = new_value
                 else:
-                    if info[key] not in self.info[key]:
-                        self.info[key].append(info[key])
-                        self.info[key].sort()
+                    for item in new_value:
+                        if item not in self.info[key]:
+                            self.info[key].append(item)
+                            # self.info[key] = self.info[key] + new_value
+                    self.info[key].sort()
+            for pop_key in to_pop:
+                info.pop(pop_key)
             collate_info_recursive(collated_info, info)
         return collated_info
 
@@ -667,20 +720,23 @@ def merge_values(values):
     return ", ".join(values)
 
 
-def year_range(start: int = None, end: int = None, step: int = 1, inclusive: bool = True):
+def year_range(start = None, end = None, step: int = 1, inclusive: bool = True):
     """
     Generates a list of year strings from between "start" and "end" for the purposes of string matching.
     In general, matches the output of range(start, end, step), but will behave slightly differently
     if only one input is given (it will be treated as the start instead of the end.
     Also, defaults to including the end point which range() does not.
     Inputs:
-    - start: int representing start year. If not specified or None, defaults to 1800
-    - end: int representing end year. If not specified or None, defaults to 2200
+    - start: int representing start year. If not specified or None, defaults to 1800. Will attempt to convert if not type int
+    - end: int representing end year. If not specified or None, defaults to 2200. Will attempt to convert if not type int
     - step: int representing step count. Defaults to 1 (i.e. include every year)
     - inclusive: bool for whether or not to include the end point. Defaults to True for ease of use
     Outputs:
     A list of strings according to the given parameters.
     """
+
+    start = int(start)
+    end = int(end)
     
     # default values, though there's probably a better solution here (with slices or maybe regexps up the line)
     if start is None:
