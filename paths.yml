@@ -1,5 +1,7 @@
 ACS_BC:
-    format_dirs: "/g/data/ia39/australian-climate-service/release/CORDEX/output-Adjust/CMIP6/bias-adjusted-output/AUST-05i/{org}/{gcm}/{empat}/{mdl_run}/{rcm}/{ver}-ACS-{bc}-{ref}-{bc_period}/{timescale}/"
+    format_dirs: 
+    - "/g/data/ia39/australian-climate-service/release/CORDEX/output-Adjust/CMIP6/bias-adjusted-output/AUST-05i/{org}/{gcm}/{empat}/{mdl_run}/{rcm}/{ver}-ACS-{bc}-{ref}-{bc_period}/{timescale}/"
+    - "/scratch/eg3/ag0738/qme/NHP/{org}/{gcm}/{empat}/{mdl_run}/{rcm}/{ver}-ACS-{bc}-{ref}-{bc_period}/{timescale}/"
     format_file: "/{var}/{date_created}/{var}_AUST-05i_{gcm}_{empat}_{mdl_run}_{org}_{rcm}_{ver}-ACS-{bc}-{ref}-{bc_period}_{timescale}_{year}0101-{year}1231.nc"
 
 ACS_DD:
@@ -11,17 +13,34 @@ AGCD:
     format_file: "/{var}_AGCD-CSIRO_r005_{year}0101-{year}1231_daily.nc"
 
 GCM:
-    format_dirs: "/g/data/oi10/replicas/CMIP6/CMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
+    format_dirs: 
+    - "/g/data/oi10/replicas/CMIP6/CMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
+    - "/g/data/oi10/replicas/CMIP6/ScenarioMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
+    - "/g/data/fs38/publications/CMIP6/CMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
+    - "/g/data/fs38/publications/CMIP6/ScenarioMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
     format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year:4}{*}.nc"
 
+# legacy, will be removed soon
 ACCESS_GCM:
     format_dirs: "/g/data/fs38/publications/CMIP6/CMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
     format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year:4}{*}.nc"
 
+# legacy, will be removed soon
 GCM_Scenario:
     format_dirs: "/g/data/oi10/replicas/CMIP6/ScenarioMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
     format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year:4}{*}.nc"
 
+# legacy, will be removed soon
 ACCESS_GCM_Scenario:
     format_dirs: "/g/data/fs38/publications/CMIP6/ScenarioMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
     format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year}0101-{year:4}{*}.nc"
+
+CORDEX-CMIP6_Regridded:
+    format_dirs: "/g/data/lp01/CORDEX-CMIP6/CMIP6/DD/{grid}/{org}/{gcm}/{empat}/{mdl_run}/{rcm}/{ver}/{timescale}/"
+    format_file: "/{var}/{date_created}/{var}_{grid}_{gcm}_{empat}_{mdl_run}_{org}_{rcm}_{ver}_{timescale}_{year:4}01-{year:4}12.nc"
+
+GCM_Regridded:
+    format_dirs: 
+    - "/g/data/lp01/CMIP6/CMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
+    - "/g/data/lp01/CMIP6/ScenarioMIP/{org}/{gcm}/{empat}/{mdl_run}/{timescale}/"
+    format_file: "/{var}/{grid}/{date_created}/{var}_{timescale}_{gcm}_{empat}_{mdl_run}_{grid}_{year:4}01-{year:4}12.nc"
