@@ -191,6 +191,7 @@ class dataset_info:
         self.info = {}
         self.info_str = ""
         self.selected = {}
+        self.priority = {}
         self.exact_match_dict = {}
 
     def __repr__(self):
@@ -205,6 +206,14 @@ class dataset_info:
             self.exact_match_dict[key] = exact_match
         return self
 
+    def prioritise(self, key, *args, descending = None):
+        if key not in self.priority:
+            self.priority[key] = {"descending": descending if descending else True, "order": args}
+        else:
+            self.priority[key]["order"] = args
+            if descending:
+                self.priority[key]["descending"] = descending
+            
     def deselect(self, *args):
         for key in args:
             if key in self.selected:
@@ -394,13 +403,35 @@ class dataset_info:
         print(self.info_str)
         # return self.info_str
     
-    def match(self, key, match_terms, exact_match = False):
-        if isinstance(match_terms, str):
-            match_terms = [match_terms]
-        if exact_match:
-            return any(term == self.data[key] for term in match_terms)
-        else:
-            return any(term in self.data[key] for term in match_terms)
+    # def match(self, key, match_terms, exact_match = False):
+    #     if isinstance(match_terms, str):
+    #         match_terms = [match_terms]
+    #     if exact_match:
+    #         return any(term == self.data[key] for term in match_terms)
+    #     else:
+    #         return any(term in self.data[key] for term in match_terms)
+    
+    def match(self, exact_match = False, **search_terms):
+
+        # currently_matching = False
+        
+        for key in search_terms:
+            if isinstance(search_terms[key], str):
+                search_terms[key] = [search_terms[key]]
+
+            if key not in self.data:
+                return False
+
+            ## FIX THIS
+            if exact_match:
+                if not any(term == self.data[key] for term in search_terms[key]):
+                    return False
+            else:
+                if not any(term in self.data[key] for term in search_terms[key]):
+                    return False
+
+        return True
+
 
     def includes(self, exact_match = False, **kwargs):
         for key in kwargs:
@@ -426,6 +457,14 @@ class dataset_info:
         return iter(self.get_files())
 
     def get_files(self):
+
+        # WIP
+        current_files = []
+        for new_info, new_file in self.generate_info(True):
+            pass
+
+
+        
         # return [(self.root + file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
         return [(file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
 
@@ -497,6 +536,9 @@ class dataset_info_collection:
         for item in self.items:
             files = files + item.get_files()
         return files
+
+    def filter(self, exact_match = False, **kwargs):
+        return dataset_info_collection([item for item in self.items if item.match(exact_match, **kwargs)])
 
     def _compare_collections(self, other, match_keys):
         matched = []
