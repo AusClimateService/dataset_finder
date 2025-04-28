@@ -1,12 +1,20 @@
 ACS_BC:
     format_dirs: 
     - "/g/data/ia39/australian-climate-service/release/CORDEX/output-Adjust/CMIP6/bias-adjusted-output/AUST-05i/{org}/{gcm}/{empat}/{mdl_run}/{rcm}/{ver}-ACS-{bc}-{ref}-{bc_period}/{timescale}/"
-    - "/scratch/eg3/ag0738/qme/NHP/{org}/{gcm}/{empat}/{mdl_run}/{rcm}/{ver}-ACS-{bc}-{ref}-{bc_period}/{timescale}/"
     format_file: "/{var}/{date_created}/{var}_AUST-05i_{gcm}_{empat}_{mdl_run}_{org}_{rcm}_{ver}-ACS-{bc}-{ref}-{bc_period}_{timescale}_{year!start}0101-{year!end}1231.nc"
 
+NHP:
+    format_dirs: 
+    - "/g/data/ia39/national-hydrological-projections/release/CORDEX/output-Adjust/CMIP6/bias-adjusted-output/AUST-05i/{org}/{gcm}/{empat}/{mdl_run}/{rcm}/{ver}-NHP-{bc}-{ref}-{bc_period}/{timescale}/"
+    format_file: "/{var}/{date_created}/{var}_AUST-05i_{gcm}_{empat}_{mdl_run}_{org}_{rcm}_{ver}-{*}-{bc}-{ref}-{bc_period}_{timescale}_{year!start}0101-{year!end}1231.nc"
+
+
 ACS_DD:
-    format_dirs: "/g/data/ia39/australian-climate-service/release/CORDEX/output-Adjust/CMIP6/bias-adjusted-input/AUST-05i/{org}/{gcm}/{empat}/{mdl_run}/{rcm}/{ver}/{timescale}/"
-    format_file: "/{var}/{date_created}/{var}_AUST-05i_{gcm}_{empat}_{mdl_run}_{org}_{rcm}_{ver}_{timescale}_{year!start}0101-{year!end}1231.nc"
+    format_dirs: 
+    - "/g/data/ia39/australian-climate-service/release/CORDEX/output-Adjust/CMIP6/bias-adjusted-input/AUST-05i/{org}/{gcm}/{empat}/{mdl_run}/{rcm}/{ver}/{timescale}/"
+    format_file: 
+    - "/{var}/{date_created}/{var}_AUST-05i_{gcm}_{empat}_{mdl_run}_{org}_{rcm}_{ver}_{timescale}_{year!start}0101-{year!end}1231.nc"
+    - "/{var}/{date_created}/{var}_AUST-05i_{gcm}_{empat}_{mdl_run}_{org}_{rcm}_{ver}_{timescale}.nc"
 
 AGCD:
     format_dirs: "/g/data/xv83/agcd-csiro/{var}/daily/"
