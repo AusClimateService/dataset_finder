@@ -461,6 +461,7 @@ class dataset_info:
         # WIP
         current_files = []
         for new_info, new_file in self.generate_info(True):
+            
             pass
 
 
@@ -616,7 +617,7 @@ class dataset_info_collection:
         return tabulate([item.table_data() for item in self.items], headers = "keys", showindex = True, tablefmt = "html")
 
 
-def filter_all(format_dirs_list, format_file, exact_match = False, **kwargs):
+def filter_all(format_dirs_list, format_files_list, exact_match = False, **kwargs):
     """
     Search through a directory and its subdirectories, filtering out results that do not match
     according to the given format strings and supplied variables, returning a list of applicable datasets.
@@ -645,6 +646,9 @@ def filter_all(format_dirs_list, format_file, exact_match = False, **kwargs):
 
     if isinstance(format_dirs_list, str):
         format_dirs_list = [format_dirs_list]
+
+    if isinstance(format_files_list, str):
+        format_files_list = [format_files_list]
 
     # internal helper function, can't be used from outside
     # walk through directory tree to find datasets, filtering by matching names against columns along the way
@@ -704,19 +708,24 @@ def filter_all(format_dirs_list, format_file, exact_match = False, **kwargs):
             info = extract_from_format(os.sep.join(columns), root)
             # if not info:
             #     info = {"path": format_dirs}
-            dataset = dataset_info(info, format_dirs.format(**info), format_file)
-            try:
-                dataset.get_info()
-            except Exception as e:
-                print(e, info, root, columns)
-                # raise e
-                continue
 
-            for item in all_data.items:
-                if item.attempt_merge(dataset):
+            for format_file in format_files_list:
+                dataset = dataset_info(info, format_dirs.format(**info), format_file)
+                try:
+                    dataset.get_info()
+                except Exception as e:
+                    print(e, info, root, columns)
+                    # raise e
+                    continue
+
+                if len(dataset.get_files()) > 0:
+                    for item in all_data.items:
+                        if item.attempt_merge(dataset):
+                            break
+                    else:
+                        all_data.add(dataset)
+                    
                     break
-            else:
-                all_data.add(dataset)
 
     return all_data
 
