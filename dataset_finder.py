@@ -189,6 +189,8 @@ class dataset_info:
         self.roots = [root]
         self.format_file = format_file
         self.info = {}
+        self.generated_info_filtered = None
+        self.generated_info_unfiltered = None
         self.info_str = ""
         self.selected = {}
         self.priority = {}
@@ -197,28 +199,39 @@ class dataset_info:
     def __repr__(self):
         return tabulate([*self.data.items()])
 
+    # def _repr_html_(self):
+    #     return tabulate([*self.data.items()], tablefmt = "html", headers=["Key", "Value"])
+
     def _repr_html_(self):
-        return tabulate([*self.data.items()], tablefmt = "html", headers=["Key", "Value"])
+        return tabulate([*self.table_data(False).items()], tablefmt = "html", headers=["Key", "Value"])
+
+    def table_data(self, add_separator = True):
+        return self.data | ({'<th style="border-left: 2px solid"></th>': '<td style="border-left: 2px solid"></td>'} if add_separator else {}) | {key: merge_values(value) for key, value in self.get_info().items()}
 
     def select(self, exact_match = False, **kwargs):
         for key in kwargs:
             self.selected[key] = kwargs[key]
             self.exact_match_dict[key] = exact_match
+            self.refresh_info()
         return self
 
-    def prioritise(self, key, *args, descending = None):
+    def prioritise(self, key, preferences = [], default = None):
+        if isinstance(preferences, str):
+            preferences = [preferences]
+        
         if key not in self.priority:
-            self.priority[key] = {"descending": descending if descending else True, "order": args}
+            self.priority[key] = {"default": default if default is not None else "error", "preferences": preferences}
         else:
-            self.priority[key]["order"] = args
-            if descending:
-                self.priority[key]["descending"] = descending
+            self.priority[key]["preferences"] = preferences
+            if default is not None:
+                self.priority[key]["default"] = default
             
     def deselect(self, *args):
         for key in args:
             if key in self.selected:
                 self.selected.pop(key)
                 self.exact_match_dict.pop(key)
+                self.refresh_info()
         return self
 
     def keys(self):
@@ -226,6 +239,11 @@ class dataset_info:
 
     def values(self):
         return self.data.values()
+
+    def any_files(self):
+        for output in self.generate_info(True):
+            return True
+        return False
 
     def attempt_merge(self, other):
         # Check whether their data is identical (both keys and values match)
@@ -238,10 +256,29 @@ class dataset_info:
             new_roots = [root for root in other.roots if root not in self.roots]
             if new_roots:
                 self.roots.append(*new_roots)
+                self.refresh_info(True)
             return True
-        
 
-    def generate_info(self, apply_filter = True, exact_match = False):
+    def get_generated_info(self, apply_filter):
+        if apply_filter:
+            if self.generated_info_filtered is None:
+                self.generated_info_filtered = [output for output in self.generate_info(True)]
+            chosen = self.generated_info_filtered
+
+        else:
+            if self.generated_info_unfiltered is None:
+                self.generated_info_unfiltered = [output for output in self.generate_info(False)]
+            chosen = self.generated_info_unfiltered
+            
+        for info, file in chosen:
+            yield info.copy(), file
+
+    def refresh_info(self, unfiltered = False):
+        self.generated_info_filtered = None
+        if unfiltered:
+            self.generated_info_unfiltered = None        
+            
+    def generate_info(self, apply_filter = True):
 
         if self.format_file[0] == os.sep:
             format_file = self.format_file[1:]
@@ -327,7 +364,9 @@ class dataset_info:
 
         collated_info = {}
         self.info = {}
-        for info, file in self.generate_info(apply_filter):
+        
+        # for info, file in self.generate_info(apply_filter):
+        for info, file in self.get_generated_info(apply_filter):
             to_pop = []
             for key in list(info.keys()):
                 new_value = [info[key]]
@@ -460,17 +499,128 @@ class dataset_info:
 
         # WIP
         current_files = []
-        for new_info, new_file in self.generate_info(True):
-            
-            pass
+        clashes = {}
+        # for new_info, new_file in self.generate_info(True):
+        for new_info, new_file in self.get_generated_info(True):
+            to_append = True
+            for old_info, old_file in current_files:
+                unmatching_keys = [key for key in new_info.keys() if new_info[key] != old_info[key]]
 
+                # identical entry detected
+                if not unmatching_keys:
+                    # print("identical entry warning")
+                    to_append = False
+                    break
+
+                # non-identical entry with clash on non-priority key (such as year)
+                if any(key not in self.priority for key in unmatching_keys):
+                    continue
+
+                # non-identical entry with clash only on priority key(s) (such as date_created)
+                else:
+                    # if len(unmatching_keys) > 1:
+                    #     print("uh oh, multiple keys")
+                    prev_to_append = None
+                    for key in unmatching_keys:
+                        # key = unmatching_keys[0]
+                        old_value = old_info[key]
+                        new_value = new_info[key]
+    
+                        preferences = self.priority[key]["preferences"]
+                        default = self.priority[key]["default"]
+                        
+                        # old value in preferences list
+                        if old_value in preferences:
+    
+                            # new value is not in preferences, does not replace previous
+                            if new_value not in preferences:
+                                new_to_append = False
+    
+                            # new value is in preferences - compare positions in preferences array
+                            else:
+                                new_to_append = preferences.index(new_value) < preferences.index(old_value)
+    
+                        # old value not in preferences list
+                        else:
+    
+                            # new value is in preferences, replaces previous
+                            if new_value in preferences:
+                                new_to_append = False
+    
+                            # new value is not in preferences, compare according to preference
+                            else:
+                                if default == "high":
+                                    new_to_append = new_value > old_value
+                                elif default == "low":
+                                    new_to_append = new_value < old_value
+                                elif default == "error":
+                                    raise ValueError(f'Unresolved clash between {old_value} and {new_value} for {key} - please select one with ".select({key} = ...)"')
+                                else:
+                                    raise ValueError(f'Unknown value for "default" parameter for {key}')
+    
+                                
+                                # XOR statement - if default is True, it flips the result of the comparison (which is checking if old_value is greater)
+                                # to_append = default ^ (old_value > new_value)
+
+                        if prev_to_append is None:
+                            prev_to_append = new_to_append
+                        elif prev_to_append != new_to_append:
+                            raise ValueError("Clashes caused competing outcomes - please resolve by selecting more specifically")
+
+                    to_append = prev_to_append
+                    
+                    if to_append:
+                        current_files.remove((old_info, old_file))
+
+                    if key not in clashes:
+                        clashes[key] = {}
+                        
+                    clash_details = '"' + '" over "'.join([new_value, old_value] if to_append else [old_value, new_value]) + '"'
+                    # clash_details = ' over '.join([new_value, old_value] if to_append else [old_value, new_value])
+                    # clash_details = [new_value, old_value] if to_append else [old_value, new_value]
+
+                    clash_info = {info_key: new_info[info_key] for info_key in new_info.keys() if info_key != key} 
+                    
+                    if clash_details not in clashes[key]:
+                        clashes[key][clash_details] = {}
+                    else:
+                        for info_key in list(clash_info.keys()):
+
+                            info_value = [clash_info[info_key]]
+                
+                            if "!" in info_key:
+                                split = info_key.split("!")
+                                info_key = split[0]
+            
+                                # todo: make more safe (check if start was there)
+                                if split[1] == "end":
+                                    continue
+            
+                                elif split[1] == "start":
+                                    range_check = True
+                                    info_value = year_range(info_value[0], clash_info[f'{info_key}!end'])
+
+                            if info_key not in clashes[key][clash_details]:
+                                clashes[key][clash_details][info_key] = info_value
+                            else:
+                                clashes[key][clash_details][info_key] += [add_value for add_value in info_value if add_value not in clashes[key][clash_details][info_key]]
+                    
+                    break
+                    
+            if to_append:
+                current_files.append((new_info, new_file))
+            
+            # pass
+
+        for clash_key, clash_dict in clashes.items():
+            for clash_details in clash_dict.keys():
+                print(f'INFO: Clash on {clash_key}: Chose {clash_details} for ' + "; ".join([f'{key} = {merge_values(value)}' for key, value in clash_dict[clash_details].items()]))
+
+        return [(file).replace(2 * os.sep, os.sep) for (info, file) in current_files]
 
         
         # return [(self.root + file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
-        return [(file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
-
-    def table_data(self):
-        return self.data | {key: merge_values(value) for key, value in self.get_info().items()}
+        # return [(file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
 
     def to_df_table(self):
         info = self.get_info().items()
@@ -519,13 +669,24 @@ class dataset_info_collection:
                     all_list.append(value)
         return all_list
 
+    def prioritise(self, key, preferences = [], default = None):
+        for item in self.items:
+            item.prioritise(key, preferences, default)
+
     # select variables within the dataset to include
-    def select(self, exact_match = False, **kwargs):
+    def select(self, exact_match = False, remove_empty = True, **kwargs):
+        # use "includes" first to filter out listings which don't have required arguments
+        if remove_empty:
+            # returns here to do selection after "includes"
+            return self.includes(exact_match, **kwargs).select(exact_match, remove_empty = False, **kwargs)
+            
         for item in self.items:
             item.select(exact_match, **kwargs)
+            
         return self
 
     # deselect variables
+    # warning - if this was used after select was called with "remove_empty", it will not recover the removed items
     def deselect(self, *args):
         for item in self.items:
             item.deselect(*args)
@@ -597,10 +758,30 @@ class dataset_info_collection:
     def includes(self, exact_match = False, **kwargs):
         return dataset_info_collection([item for item in self.items if item.includes(exact_match, **kwargs)])
 
+    def condense(self, column, can_clash = True):
+        new_collection = dataset_info_collection()
+        for item in self.items:
+            if column in item.data:
+                item.data.pop(column)
+                item.refresh_info()
+                if can_clash:
+                    if column in item.get_info():
+                        item.prioritise(column)
+            if item.any_files():
+                for new_item in new_collection.items:
+                    if new_item.attempt_merge(item):
+                        break
+                else:
+                    new_collection.add(item)
+        return new_collection
+
     # ~~so that open_mfdataset can be used directly with this object~~
     def __iter__(self):
         return iter(self.items)
         # return iter(self.get_files())
+
+    def __add__(self, other):
+        return dataset_info_collection(self.items + other.items)
 
     # allows individual dataset_info objects to be extracted directly
     # needs improvement, a slice should return a new dataset_info_collection
@@ -614,10 +795,10 @@ class dataset_info_collection:
     # display nicely when interrogating on JupyterLab
     def _repr_html_(self):
         # return tabulate([item.data | {key: merge_values(value) for key, value in item.get_info().items()} for item in self.items], headers = "keys", showindex = True, tablefmt = "html")
-        return tabulate([item.table_data() for item in self.items], headers = "keys", showindex = True, tablefmt = "html")
+        return tabulate([item.table_data() for item in self.items], headers = "keys", showindex = True, tablefmt = "unsafehtml")
 
 
-def filter_all(format_dirs_list, format_files_list, exact_match = False, **kwargs):
+def filter_all(format_dirs_list, format_files_list, exact_match = False, unique = None, **kwargs):
     """
     Search through a directory and its subdirectories, filtering out results that do not match
     according to the given format strings and supplied variables, returning a list of applicable datasets.
@@ -710,15 +891,28 @@ def filter_all(format_dirs_list, format_files_list, exact_match = False, **kwarg
             #     info = {"path": format_dirs}
 
             for format_file in format_files_list:
-                dataset = dataset_info(info, format_dirs.format(**info), format_file)
-                try:
-                    dataset.get_info()
-                except Exception as e:
-                    print(e, info, root, columns)
-                    # raise e
-                    continue
+                # print(start_path, root)
+                # print(format_dirs.format(**info))
+                # raise Exception("e")
+                # dataset = dataset_info(info, format_dirs.format(**info), format_file)
+                dataset = dataset_info(info, os.path.join(start_path, root) + os.sep, format_file)
+                
+                # try:
+                #     dataset.get_info()
+                # except Exception as e:
+                #     print(e, info, root, columns)
+                #     # raise e
+                #     continue
 
-                if len(dataset.get_files()) > 0:
+                for key in kwargs:
+                    # print(key, dataset.data)
+                    if key not in dataset.data and key in dataset.info:
+                        # print(key, kwargs[key])
+                        dataset = dataset.select(**{key: kwargs[key]}, exact_match = exact_match)
+                        # dataset.print_info()
+
+                # if len(dataset.get_files()) > 0:
+                if dataset.any_files():
                     for item in all_data.items:
                         if item.attempt_merge(dataset):
                             break
@@ -726,6 +920,12 @@ def filter_all(format_dirs_list, format_files_list, exact_match = False, **kwarg
                         all_data.add(dataset)
                     
                     break
+
+    if unique:
+        for key, options in unique.items():
+            all_data.prioritise(key, **options)
+
+    # all_data = all_data.select(exact_match = exact_match, **kwargs)
 
     return all_data
 
@@ -816,9 +1016,13 @@ def paths(key, yaml_path = "paths.yml"):
 
     format_dirs = keys[key]["format_dirs"]
     format_file = keys[key]["format_file"]
+    if "unique" in keys[key]:
+        unique = keys[key]["unique"]
+    else:
+        unique = None
 
     def use_paths(exact_match = False, **kwargs):
-        return filter_all(format_dirs, format_file, exact_match, **kwargs)
+        return filter_all(format_dirs, format_file, exact_match, unique, **kwargs)
 
     return use_paths
 
