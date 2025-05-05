@@ -225,6 +225,7 @@ class dataset_info:
             self.priority[key]["preferences"] = preferences
             if default is not None:
                 self.priority[key]["default"] = default
+        return self
             
     def deselect(self, *args):
         for key in args:
@@ -255,7 +256,7 @@ class dataset_info:
             # Combine the two by adding the other's root paths to this one
             new_roots = [root for root in other.roots if root not in self.roots]
             if new_roots:
-                self.roots.append(*new_roots)
+                self.roots += new_roots
                 self.refresh_info(True)
             return True
 
@@ -473,6 +474,9 @@ class dataset_info:
 
 
     def includes(self, exact_match = False, **kwargs):
+        """
+        Checks whether given keyword argument search terms are contained with the dataset.
+        """
         for key in kwargs:
             
             if key not in self.get_info():
@@ -493,9 +497,15 @@ class dataset_info:
         return True
 
     def __iter__(self):
+        """
+        Returns the file list as an iterator so this object can be passed directly into open_mfdataset without needing to call get_files on it.
+        """
         return iter(self.get_files())
 
     def get_files(self):
+        """
+        Get files for loading the dataset according to current selection, and attempt to resolve any clashes for unique terms.
+        """
 
         # WIP
         current_files = []
@@ -545,7 +555,7 @@ class dataset_info:
     
                             # new value is in preferences, replaces previous
                             if new_value in preferences:
-                                new_to_append = False
+                                new_to_append = True
     
                             # new value is not in preferences, compare according to preference
                             else:
@@ -623,6 +633,10 @@ class dataset_info:
         # return [(file).replace(2 * os.sep, os.sep) for (info, file) in self.generate_info(True)]
 
     def to_df_table(self):
+        """
+        UNTESTED WITH RECENT CHANGES, AVOID USING
+        """
+        print("Warning - untested after flexibility changes. Use at risk of inaccuracy")
         info = self.get_info().items()
         tabled_info = {}
         # untabled_info = []
@@ -658,9 +672,15 @@ class dataset_info_collection:
             self.items = []
 
     def add(self, item):
+        """
+        Add a new dataset_info object to the collection.
+        """
         self.items.append(item)
 
     def get_all(self, key):
+        """
+        Get every unique entry for a given key.
+        """
         all_list = []
         for item in self.items:
             if key in item.data:
@@ -675,6 +695,10 @@ class dataset_info_collection:
 
     # select variables within the dataset to include
     def select(self, exact_match = False, remove_empty = True, **kwargs):
+        """
+        Select terms within every dataset of the collection. By default, return a new dataset_info_collection containing
+        only non-empty entries after selection has been applied.
+        """
         # use "includes" first to filter out listings which don't have required arguments
         if remove_empty:
             # returns here to do selection after "includes"
@@ -694,12 +718,19 @@ class dataset_info_collection:
 
     # return all the files from all the dataset_info objects in a single 1D list
     def get_files(self):
+        """
+        Return files from every dataset contained within the collection.
+        Warning that only in certain circumstances will this be practical to use without having clashing coordinates once datasets are loaded into memory. 
+        """
         files = []
         for item in self.items:
             files = files + item.get_files()
         return files
 
     def filter(self, exact_match = False, **kwargs):
+        """
+        Return a new dataset_info_collection containing only entries that match the given keyword argument search terms.
+        """
         return dataset_info_collection([item for item in self.items if item.match(exact_match, **kwargs)])
 
     def _compare_collections(self, other, match_keys):
@@ -814,10 +845,11 @@ def filter_all(format_dirs_list, format_files_list, exact_match = False, unique 
     For simplicity this could simply encapsulate every subdirectory. If this is the case it is still
     important to keep the file format itself separate as only directories are checked in this function.
     Input:
-    - format_dirs: The format of the directories leading to the datasets
-    - format_file: The format of the files within the datasets, which can include subdirectories
+    - format_dirs_list: A list of the formats of the directories leading to the datasets
+    - format_file_list: A list of the formats of the files within the datasets, which can include subdirectories
     - exact_match: Whether to match search terms exactly, default to False. Otherwise a substring 
     is considered a match
+    - unique: A dictionary of keys within datasets that should be unique, and the properties for resolving clashes
     - **kwargs: Keyword arguments mapping search terms to values for matching. Multiple values can
     be assigned to each search term - only one needs to match for it to be included.
     Output:
@@ -897,12 +929,12 @@ def filter_all(format_dirs_list, format_files_list, exact_match = False, unique 
                 # dataset = dataset_info(info, format_dirs.format(**info), format_file)
                 dataset = dataset_info(info, os.path.join(start_path, root) + os.sep, format_file)
                 
-                # try:
-                #     dataset.get_info()
-                # except Exception as e:
-                #     print(e, info, root, columns)
-                #     # raise e
-                #     continue
+                try:
+                    dataset.get_info()
+                except Exception as e:
+                    print(e, info, root, columns)
+                    # raise e
+                    continue
 
                 for key in kwargs:
                     # print(key, dataset.data)
