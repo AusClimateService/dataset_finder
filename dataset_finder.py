@@ -212,7 +212,8 @@ class dataset_info:
         for key in kwargs:
             self.selected[key] = kwargs[key]
             self.exact_match_dict[key] = exact_match
-            self.refresh_info()
+        self.refresh_info()
+        # print(kwargs)
         return self
 
     def prioritise(self, key, preferences = [], default = None):
@@ -232,7 +233,7 @@ class dataset_info:
             if key in self.selected:
                 self.selected.pop(key)
                 self.exact_match_dict.pop(key)
-                self.refresh_info()
+        self.refresh_info()
         return self
 
     def keys(self):
@@ -321,7 +322,9 @@ class dataset_info:
                         files[i] = short_root + os.sep + file
     
                     if apply_filter and self.selected:
-                        match_values(files, format_file, self.selected, in_place = True, exact_match_dict = self.exact_match_dict)                
+                        match_values(files, format_file, self.selected, in_place = True, exact_match_dict = self.exact_match_dict)
+
+                    # print(files)
                     
                     for file in files:
                         try:
@@ -736,6 +739,10 @@ class dataset_info_collection:
     def _compare_collections(self, other, match_keys):
         matched = []
         unmatched = []
+
+        if isinstance(other, dataset_info):
+            other = dataset_info_collection([other])
+        
         for item in self.items:
             success = False
             
@@ -813,6 +820,9 @@ class dataset_info_collection:
 
     def __add__(self, other):
         return dataset_info_collection(self.items + other.items)
+
+    def __len__(self):
+        return len(self.items)
 
     # allows individual dataset_info objects to be extracted directly
     # needs improvement, a slice should return a new dataset_info_collection
@@ -936,20 +946,18 @@ def filter_all(format_dirs_list, format_files_list, exact_match = False, unique 
                     # raise e
                     continue
 
-                for key in kwargs:
-                    # print(key, dataset.data)
-                    if key not in dataset.data and key in dataset.info:
-                        # print(key, kwargs[key])
-                        dataset = dataset.select(**{key: kwargs[key]}, exact_match = exact_match)
-                        # dataset.print_info()
-
-                # if len(dataset.get_files()) > 0:
                 if dataset.any_files():
-                    for item in all_data.items:
-                        if item.attempt_merge(dataset):
-                            break
-                    else:
-                        all_data.add(dataset)
+                    for key in kwargs:
+                        if key not in dataset.data and key in dataset.info:
+                            dataset = dataset.select(**{key: kwargs[key]}, exact_match = exact_match)
+
+                    # check there are still files after selection
+                    if dataset.any_files(): 
+                        for item in all_data.items:
+                            if item.attempt_merge(dataset):
+                                break
+                        else:
+                            all_data.add(dataset)
                     
                     break
 
