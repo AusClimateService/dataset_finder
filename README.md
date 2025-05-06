@@ -1,6 +1,6 @@
 # Dataset Finder
 
-A tool to help quickly access and filter through datasets. Intended for ACS datasets (specifically, the tool was created for the [ACS bias correction release](https://github.com/AusClimateService/bias-correction-data-release), but it should work with other datasets as long as they follow a consistent directory and file name format.
+A tool to help quickly access and filter through datasets. Intended for ACS datasets (specifically, the tool was created for the [ACS bias correction release](https://github.com/AusClimateService/bias-correction-data-release)), but it should work with other datasets as long as they follow a consistent directory and file name format.
 
 ## Basic Usage
 
