@@ -839,7 +839,7 @@ class dataset_info_collection:
         return tabulate([item.table_data() for item in self.items], headers = "keys", showindex = True, tablefmt = "unsafehtml")
 
 
-def filter_all(format_dirs_list, format_files_list, exact_match = False, unique = None, **kwargs):
+def filter_all(format_dirs_list, format_files_list, unique = None, exact_match = False, **kwargs):
     """
     Search through a directory and its subdirectories, filtering out results that do not match
     according to the given format strings and supplied variables, returning a list of applicable datasets.
@@ -1062,7 +1062,7 @@ def paths(key, yaml_path = "paths.yml"):
         unique = None
 
     def use_paths(exact_match = False, **kwargs):
-        return filter_all(format_dirs, format_file, exact_match, unique, **kwargs)
+        return filter_all(format_dirs, format_file, unique, exact_match, **kwargs)
 
     return use_paths
 
