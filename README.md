@@ -36,10 +36,10 @@ Further examples can be found in the provided example notebook, with a warning t
 
 - FAQ for this page
 - Memory / speed optimisations
-- A tool to help come up with the path structures in the first place without needing to manually input.
-- Suggested output path structures for saving transformed data.
-- Potential improvements to the way date ranges are parsed.
-- More options for manipulating / viewing the large output tables - for example, there is currently no way to sort them.
+- A tool to help come up with the path structures in the first place without needing to manually input
+- Suggested output path structures for saving transformed data
+- Potential improvements to the way date ranges are parsed
+- More options for manipulating / viewing the large output tables - for example, there is currently no way to sort them
 
 ## Known Issues / Quirks
 
