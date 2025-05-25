@@ -287,6 +287,12 @@ class dataset_info:
         else:
             format_file = self.format_file
 
+        if format_file[-1] == os.sep:
+            folder_mode = True
+            format_file = format_file[:-1]
+        else:
+            folder_mode = False
+
         for path_root in self.roots:
             if "{" in format_file:
                 
@@ -301,15 +307,23 @@ class dataset_info:
         
                 start_path = path_root + format_file[:prev_separator_pos + 1]
                 format_file = format_file[prev_separator_pos + 1:]
-    
+                
             else:
                 start_path = path_root + format_file
                 format_file = ""
-    
-            for root, dirs, files in os.walk(start_path, followlinks = True):
+
+            for root, dirs, file_list in os.walk(start_path, followlinks = True):
                 dirs.sort()
-                files.sort()
-    
+                file_list.sort()
+
+                # if format_file[-1] == os.sep:
+                if folder_mode:
+                    files = dirs
+                else:
+                    files = file_list
+
+                # print(files)
+                
                 # how deep we are into the tree (root = 0)
                 level = 0
     
@@ -319,7 +333,7 @@ class dataset_info:
     
                 if level == format_file.count(os.sep):
                     for i, file in enumerate(files):
-                        files[i] = short_root + os.sep + file
+                        files[i] = os.path.join(short_root, file)
     
                     if apply_filter and self.selected:
                         match_values(files, format_file, self.selected, in_place = True, exact_match_dict = self.exact_match_dict)
