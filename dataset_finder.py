@@ -750,12 +750,21 @@ class dataset_info_collection:
         """
         return dataset_info_collection([item for item in self.items if item.match(exact_match, **kwargs)])
 
-    def _compare_collections(self, other, match_keys):
+    def _compare_collections(self, other, match_keys, exclude_keys):
         matched = []
         unmatched = []
 
+        if match_keys is not None and exclude_keys is not None:
+            raise ValueError("Can specify either match_keys or exclude_keys but not both")
+
         if isinstance(other, dataset_info):
             other = dataset_info_collection([other])
+
+        if isinstance(match_keys, str):
+            match_keys = [match_keys]
+
+        if isinstance(exclude_keys, str):
+            exclude_keys = [exclude_keys]
         
         for item in self.items:
             success = False
@@ -776,6 +785,10 @@ class dataset_info_collection:
                     # match based on common columns
                     common_keys = item.keys() & check.keys()
 
+                    # remove any specified keys
+                    if exclude_keys:
+                        common_keys = common_keys ^ set(exclude_keys)
+
                     # no common column to match between
                     if not common_keys:
                         break
@@ -794,12 +807,12 @@ class dataset_info_collection:
 
         return matched, unmatched
 
-    def find_matches(self, other, match_keys = None):
-        matched, unmatched = self._compare_collections(other, match_keys)
+    def find_matches(self, other, match_keys = None, exclude_keys = None):
+        matched, unmatched = self._compare_collections(other, match_keys, exclude_keys)
         return dataset_info_collection(matched)
 
-    def find_missing(self, other, match_keys = None):
-        matched, unmatched = self._compare_collections(other, match_keys)
+    def find_missing(self, other, match_keys = None, exclude_keys = None):
+        matched, unmatched = self._compare_collections(other, match_keys, exclude_keys)
         return dataset_info_collection(unmatched)
 
     def to_dataframe(self):
