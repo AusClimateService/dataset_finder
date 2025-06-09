@@ -823,13 +823,13 @@ class dataset_info_collection:
     def includes(self, exact_match = False, **kwargs):
         return dataset_info_collection([item for item in self.items if item.includes(exact_match, **kwargs)])
 
-    def condense(self, column, can_clash = True):
+    def condense(self, column, force_unique = True):
         new_collection = dataset_info_collection()
         for item in self.items:
             if column in item.data:
                 item.data.pop(column)
                 item.refresh_info()
-                if can_clash:
+                if force_unique:
                     if column in item.get_info():
                         item.prioritise(column)
             if item.any_files():
