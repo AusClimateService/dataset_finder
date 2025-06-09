@@ -20,6 +20,22 @@ NHP:
             - "latest"
             default: "high"
 
+ACS_DS:
+   format_dirs: 
+   - "/g/data/py18/BARPA/output/CMIP6/DD/{grid}/{org}/{gcm}/{scenario}/{mdl_run}/{rcm}/{ver}/{timescale}/"
+   - "/g/data/hq89/CCAM/output/CMIP6/DD/{grid}/{org}/{gcm}/{scenario}/{mdl_run}/{rcm}/{ver}/{timescale}/"
+   - "/g/data/zz63/NARCliM2-0/output/CMIP6/DD/{grid}/{org}/{gcm}/{scenario}/{mdl_run}/{rcm}/{ver}/{timescale}/"
+   - "/g/data/ig45/QldFCP-2/output/CMIP6/DD/{grid}/{org}/{gcm}/{scenario}/{mdl_run}/{rcm}/{ver}/{timescale}/"
+   - "/g/data/ob53/BARRA2/output/reanalysis/{grid}/{org}/{gcm}/{scenario}/{mdl_run}/{rcm}/{ver}/{timescale}/"
+   format_file: 
+   - "/{var}/{date_created}/{var}_{grid}_{gcm}_{scenario}_{mdl_run}_{org}_{rcm}_{ver}_{timescale}_{year!start:4}{month!start:2}-{year!end:4}{month!end:2}.nc"
+   - "/{var}/{date_created}/{var}_{grid}_{gcm}_{scenario}_{mdl_run}_{org}_{rcm}_{ver}_{timescale}_{year!start:4}{month!start:2}01-{year!end:4}{month!end:2}31.nc"
+   unique:
+       date_created:
+           preferences: 
+           - "latest"
+           default: "high"
+
 ACS_DD:
     format_dirs: 
     - "/g/data/kj66/CORDEX/output/CMIP6/DD/{grid}/{org}/{gcm}/{scenario}/{mdl_run}/{rcm}/{ver}/{timescale}/"
